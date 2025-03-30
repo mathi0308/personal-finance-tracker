@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Finance Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+		    
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(to right, #ff7e5f, #feb47b);
+            color: white;
+            text-align: center;
+            padding: 60px;
+        }
+        .container {
+            background:);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
+        }
+		.login-container {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 20px;
+    border-radius: 50px;
+    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
+    width: 300px;
+    margin: auto;
+    text-align: center;
+    border: 2px BLACK;
+}
+
+        table {
+            width: 100%;
+            background: white;
+            color: black;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        th {
+            background:black;
+            color: white;
+        }
+        input, select, button {
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            margin: 5px;
+        }
+        button {
+            background:black;
+            color: white;
+            cursor: pointer;
+        }
+		.summary-container {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.summary-box {
+    padding: 50px;
+    border-radius: 10px;
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+    width: 200px;
+    text-align: center;
+}
+
+.income-box {
+    background-color: #28a745; /* Green */
+}
+
+.expense-box {
+    background-color: #dc3545; /* Red */
+}
+
+    </style>
+</head>
+<body>
+
+    <div class="login-container" id="loginContainer">
+	<img src="C:\Users\mathi\Downloads\images__1_-removebg-preview.png"width="200" height="100">
+
+        <h2>Login</h2>
+        <input type="text" id="username" placeholder="Username">
+        <input type="password" id="password" placeholder="Password">
+        <button onclick="login()">Login</button>
+    </div>
+    
+    <div class="container" id="appContainer" style="display: none;">
+        <h1>Personal Finance Tracker</h1>
+       <div class="summary-container">
+    <div class="summary-box income-box">Total Income: <span id="totalIncome">0</span></div>
+    <div class="summary-box expense-box">Total Expenses: <span id="totalExpenses">0</span></div>
+</div>
+<h2>Balance: <span id="balance">0</span></h2>
+
+        <input type="text" id="search" placeholder="Search transactions..." onkeyup="searchTransaction()">
+        <table>
+            <thead>
+                <tr>
+                    <th>Description</th>
+                    <th>Amount</th>
+                    <th>Category</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="transactionTable">
+                <!-- Transactions will be added here dynamically -->
+            </tbody>
+        </table>
+        <input type="text" id="desc" placeholder="Description">
+        <input type="number" id="amount" placeholder="Amount">
+        <select id="category">
+            <option value="Salary">Salary</option>
+            <option value="Income">Income</option>
+            <option value="Expenses">Expenses</option>
+            <option value="Food">Food</option>
+            <option value="Transport">Transport</option>
+            <option value="Shopping">Shopping</option>
+        </select>
+        <button onclick="addTransaction()">Add</button>
+        <canvas id="financeChart"></canvas>
+    </div>
+    
+    <script>
+        let transactions = [];
+        let financeChart;
+
+        function login() {
+            document.getElementById("loginContainer").style.display = "none";
+            document.getElementById("appContainer").style.display = "block";
+        }
+
+        function addTransaction() {
+            const desc = document.getElementById("desc").value;
+            const amount = parseFloat(document.getElementById("amount").value);
+            const category = document.getElementById("category").value;
+            if (!desc || isNaN(amount) || !category) return;
+            transactions.push({ desc, amount, category });
+            updateTable();
+            updateSummary();
+            updateChart();
+        }
+
+        function deleteTransaction(index) {
+            transactions.splice(index, 1);
+            updateTable();
+            updateSummary();
+            updateChart();
+        }
+
+        function searchTransaction() {
+            const query = document.getElementById("search").value.toLowerCase();
+            const rows = document.querySelectorAll("#transactionTable tr");
+            rows.forEach(row => {
+                row.style.display = row.innerText.toLowerCase().includes(query) ? "" : "none";
+            });
+        }
+
+        function updateTable() {
+            const table = document.getElementById("transactionTable");
+            table.innerHTML = "";
+            transactions.forEach((t, i) => {
+                table.innerHTML += `<tr>
+                    <td>${t.desc}</td>
+                    <td>${t.amount}</td>
+                    <td>${t.category}</td>
+                    <td><button onclick="deleteTransaction(${i})">Delete</button></td>
+                </tr>`;
+            });
+        }
+
+        function updateSummary() {
+            const totalIncome = transactions
+                .filter(t => t.category === "Salary" || t.category === "Income")
+                .reduce((sum, t) => sum + t.amount, 0);
+            const totalExpenses = transactions
+                .filter(t => t.category === "Expenses" || t.category === "Food" || t.category === "Transport" || t.category === "Shopping")
+                .reduce((sum, t) => sum + t.amount, 0);
+            const balance = totalIncome - totalExpenses;
+            
+            document.getElementById("totalIncome").innerText = totalIncome;
+            document.getElementById("totalExpenses").innerText = totalExpenses;
+            document.getElementById("balance").innerText = balance;
+        }
+
+        function updateChart() {
+            const ctx = document.getElementById("financeChart").getContext("2d");
+            const categories = [...new Set(transactions.map(t => t.category))];
+            const data = categories.map(cat => 
+                transactions.filter(t => t.category === cat).reduce((sum, t) => sum + t.amount, 0));
+            
+            if (financeChart) {
+                financeChart.destroy();
+            }
+            
+            financeChart = new Chart(ctx, {
+                type: "pie",
+                data: {
+                    labels: categories,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: ["#FF6384", "#36A2EB", "#FFCE56", "#8A2BE2", "#00FA9A"],
+                    }]
+                }
+            });
+        }
+    </script>
+</body>
+</html>
